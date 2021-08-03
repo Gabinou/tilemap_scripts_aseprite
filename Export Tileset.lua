@@ -55,7 +55,7 @@ if lay.isTilemap then
   local grid = tileset.grid
   local size = grid.tileSize
   spec.width = size.width * row_len
-  spec.height = size.height * (#tileset // row_len) 
+  spec.height = size.height * ((#tileset // row_len) + 1)
   local image = Image(spec)
   image:clear() 
   for i = 0,row_len-1 do
