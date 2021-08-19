@@ -11,3 +11,7 @@ Everything including my modifications are under the MIT licence, feel free to us
 - ```Export Tileset.lua``` exports a tileset into a rectangular ```png``` with a maximal ```row_len```, by copying and flattening all layers. I use it to create tiles with different backgrounds.
 
 - ```Import Tileset.lua``` uses layer names of all tilemap layers to import tilesets. For each tilemap layer, a new tilemap layer is created, the tileset is imported from the ```Tileset_*layer_name*.png``` file, then the pixels from the old tilemap layers are copied over. Finally, the old tilemap layers are discarded and the new ones renamed to their respective names.
+
+To Do:
+- Export frames into different files.
+- Import files into different frames.
