@@ -11,6 +11,17 @@ if TilesetMode == nil then return app.alert "Use Aseprite v1.3"  end
 
 local row_len = 8
 
+local function activeFrameNumber()
+  local f = app.activeFrame
+  if f == nil then
+    return 1
+  else
+    return f
+  end
+end
+
+
+app.command.GotoFirstFrame()
 local spr = app.activeSprite
 local lay = app.activeLayer
 local fs = app.fs
@@ -44,22 +55,37 @@ local function layers_visible2tilemap(spr)
   end
 end
 
+
+local function layers_getName(layers,name)
+  local out
+  for i,layer in ipairs(layers) do
+    if (layers[i].name  == name) then
+      out = layers[i]
+      break
+    end
+  end
+  return out
+end
+
 layers_duplicate(spr)
 layers_visible_flatten(spr)
 layers_visible2tilemap(spr)
 
-local lay = app.activeLayer
+local lay = layers_getName(spr.layers,"Flattened")
+app.activeLayer = lay
 if lay.isTilemap then
   local tileset = lay.tileset
   local spec = spr.spec
   local grid = tileset.grid
   local size = grid.tileSize
   spec.width = size.width * row_len
-  spec.height = size.height * ((#tileset // row_len) + 1)
+  local col_len = math.ceil(#tileset / row_len)
+  spec.height = size.height *  col_len
   local image = Image(spec)
   image:clear() 
+
   for i = 0,row_len-1 do
-    for j = 0, (#tileset // row_len) do
+    for j = 0, col_len do
       local current = i + j* row_len
       if (current < #tileset) then
         local tile = tileset:getTile(current)
@@ -71,4 +97,3 @@ if lay.isTilemap then
   image:saveAs(path)
 end
 app.command.RemoveLayer()
-

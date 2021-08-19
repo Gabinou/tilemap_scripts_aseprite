@@ -16,7 +16,7 @@ local lay = app.activeLayer
 local fs = app.fs
 local output_folder = fs.filePath(spr.filename)
 local tileset_folder
-if string.find(output_folder, "Maps")  then
+if string.find(output_folder, "Maps") then
  tileset_folder = output_folder:gsub("Maps", "Tiles")
 end
 -- print(tileset_folder)
@@ -41,24 +41,28 @@ local function layer_tilemap_create(layername)
   layer.name = layername .. "_2"
   return(layer)
 end
-layernames = {}
+
+tilemap_oldlayer_names = {}
 for i,layer in ipairs(spr.layers) do
-  layernames[#layernames + 1] = layer.name 
+  if layer.isTilemap then
+    tilemap_oldlayer_names[#tilemap_oldlayer_names + 1] = layer.name 
+  end
 end
 
-for i = 1, (#layernames) do
-  -- print(layernames[i])
-  local tileset_filename = app.fs.joinPath(tileset_folder, "Tileset_"..layernames[i]..".png")
-  layer_tilemap_create(layernames[i])
-  local newlayer = getLayer(spr, layernames[i].."_2")
-  local oldlayer = getLayer(spr, layernames[i])
+for i = 1, (#tilemap_oldlayer_names) do
+  -- print(tilemap_oldlayer_names[i])
+
+  local tileset_filename = app.fs.joinPath(tileset_folder, "Tileset_"..tilemap_oldlayer_names[i]..".png")
+  layer_tilemap_create(tilemap_oldlayer_names[i])
+  local newlayer = getLayer(spr, tilemap_oldlayer_names[i].."_2")
+  local oldlayer = getLayer(spr, tilemap_oldlayer_names[i])
   assert(newlayer ~= nil)
   assert(oldlayer ~= nil)
   oldlayer.isVisible = true
   newlayer.isVisible = true
   sprite_tileset = app.open(tileset_filename)
 
-  -- Copy all pixels from tileset_filename to newlayer (creates new tiles)
+  -- Creates new tileset by copying all pixels from tileset_filename to newlayer
   sprite_tileset.selection:selectAll()
   app.command.Copy()
   app.activeSprite = spr
@@ -77,15 +81,15 @@ for i = 1, (#layernames) do
 
   -- Copy pixels from oldlayer
   spr = app.activeSprite
-  -- app.activeSprite = spr
   app.activeLayer = oldlayer
   spr.selection:selectAll()
   app.command.Copy()
   app.activeLayer = newlayer
-  -- spr.selection:selectAll()
   spr.selection:deselect()
   app.command.Paste()
   spr.selection:deselect()
+  newlayer.name = oldlayer.name
+  spr:deleteLayer(oldlayer)
 end
 
 
