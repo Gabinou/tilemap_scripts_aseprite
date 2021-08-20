@@ -8,9 +8,12 @@ if TilesetMode == nil then return app.alert "Use Aseprite v1.3"  end
 -- 3. Copy tileset pixels pixels.
 -- 4. Delete all tile indices/pixels on the canvas
 -- 5. Copy pixels from *layername*
--- 6. Delete *layername*
--- 7. Rename *layername*_2 to *layername* 
+-- 6. Repeat steps 2-5 for all frames
+-- 7. Delete *layername*
+-- 8. Rename *layername*_2 to *layername* 
 
+app.command.GotoFirstFrame()
+local frame = app.activeFrame
 local spr = app.activeSprite
 local lay = app.activeLayer
 local fs = app.fs
@@ -33,12 +36,12 @@ local function getLayer(spr, layername)
   return(outlayer)
 end
 
-local function layer_tilemap_create(layername)
+local function layer_tilemap_create(newname)
   app.command.NewLayer()
   app.command.ConvertLayer{["to"]="tilemap"}
   -- app.command.NewLayer{["tilemap"]=true} -- Borks placement offset Aseprite Issue #2743
   layer = app.activeLayer
-  layer.name = layername .. "_2"
+  layer.name = newname
   return(layer)
 end
 
@@ -49,47 +52,70 @@ for i,layer in ipairs(spr.layers) do
   end
 end
 
+
+local postname = "_2"
+-- Make new tilemap layers
 for i = 1, (#tilemap_oldlayer_names) do
   -- print(tilemap_oldlayer_names[i])
-
   local tileset_filename = app.fs.joinPath(tileset_folder, "Tileset_"..tilemap_oldlayer_names[i]..".png")
-  layer_tilemap_create(tilemap_oldlayer_names[i])
-  local newlayer = getLayer(spr, tilemap_oldlayer_names[i].."_2")
+  layer_tilemap_create(tilemap_oldlayer_names[i]..postname)
+end
+
+-- Copy new tiles from tilesets, and pixels from old layers
+while (frame ~= nil) do
+  spr = frame.sprite
+  lay = app.activeLayer
+  for i = 1, (#tilemap_oldlayer_names) do
+
+  -- get old and new tilemap layers
+    local tileset_filename = app.fs.joinPath(tileset_folder, "Tileset_"..tilemap_oldlayer_names[i]..".png")
+    local newlayer = getLayer(spr, tilemap_oldlayer_names[i]..postname)
+    local oldlayer = getLayer(spr, tilemap_oldlayer_names[i])
+    assert(newlayer ~= nil)
+    assert(oldlayer ~= nil)
+    oldlayer.isVisible = true
+    newlayer.isVisible = true
+    sprite_tileset = app.open(tileset_filename)
+
+    -- Creates new tileset by copying all pixels from tileset_filename to newlayer
+    sprite_tileset.selection:selectAll()
+    app.command.Copy()
+    app.activeSprite = spr
+    app.activeLayer = newlayer
+    app.command.ToggleTilesMode()
+    app.command.TilesetMode{["mode"]="auto"}
+    app.command.Paste()
+    
+    -- Delete all pixels in newlayer
+    app.command.ToggleTilesMode()
+    spr.selection:selectAll()
+    app.command.TilesetMode{["mode"]="stack"}
+    app.command.Clear()
+    sprite_tileset.selection:deselect()
+    sprite_tileset:close()
+
+    -- Copy pixels from oldlayer
+    spr = app.activeSprite
+    app.activeLayer = oldlayer
+    spr.selection:selectAll()
+    app.command.Copy()
+    app.activeLayer = newlayer
+    spr.selection:deselect()
+    app.command.Paste()
+    spr.selection:deselect()
+  end
+  app.command.GotoNextFrame()
+  frame = app.activeFrame
+  if (frame.frameNumber == 1) then
+    break
+  end
+end
+
+-- Delete old layers
+for i = 1, (#tilemap_oldlayer_names) do
+  local tileset_filename = app.fs.joinPath(tileset_folder, "Tileset_"..tilemap_oldlayer_names[i]..".png")
+  local newlayer = getLayer(spr, tilemap_oldlayer_names[i]..postname)
   local oldlayer = getLayer(spr, tilemap_oldlayer_names[i])
-  assert(newlayer ~= nil)
-  assert(oldlayer ~= nil)
-  oldlayer.isVisible = true
-  newlayer.isVisible = true
-  sprite_tileset = app.open(tileset_filename)
-
-  -- Creates new tileset by copying all pixels from tileset_filename to newlayer
-  sprite_tileset.selection:selectAll()
-  app.command.Copy()
-  app.activeSprite = spr
-  app.activeLayer = newlayer
-  app.command.ToggleTilesMode()
-  app.command.TilesetMode{["mode"]="auto"}
-  app.command.Paste()
-  
-  -- Delete all pixels in newlayer
-  app.command.ToggleTilesMode()
-  spr.selection:selectAll()
-  app.command.TilesetMode{["mode"]="stack"}
-  app.command.Clear()
-  sprite_tileset.selection:deselect()
-  sprite_tileset:close()
-
-  -- Copy pixels from oldlayer
-  spr = app.activeSprite
-  app.activeLayer = oldlayer
-  spr.selection:selectAll()
-  app.command.Copy()
-  app.activeLayer = newlayer
-  spr.selection:deselect()
-  app.command.Paste()
-  spr.selection:deselect()
   newlayer.name = oldlayer.name
   spr:deleteLayer(oldlayer)
 end
-
-
