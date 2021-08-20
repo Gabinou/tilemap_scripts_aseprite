@@ -16,6 +16,14 @@ app.command.GotoFirstFrame()
 local frame = app.activeFrame
 local spr = app.activeSprite
 local lay = app.activeLayer
+local tile_pxwidth =  spr.tilesets[1].grid.tileSize.width
+local tile_pxheight =  spr.tilesets[1].grid.tileSize.height
+
+local canvas_pxwidth = spr.width
+local canvas_pxheight = spr.height
+local canvas_tilewidth = canvas_pxwidth // tile_pxwidth
+local canvas_tileheight = canvas_pxheight // tile_pxwidth
+
 local fs = app.fs
 local output_folder = fs.filePath(spr.filename)
 local tileset_folder
@@ -75,24 +83,38 @@ while (frame ~= nil) do
     assert(oldlayer ~= nil)
     oldlayer.isVisible = true
     newlayer.isVisible = true
-    sprite_tileset = app.open(tileset_filename)
 
     -- Creates new tileset by copying all pixels from tileset_filename to newlayer
-    sprite_tileset.selection:selectAll()
-    app.command.Copy()
-    app.activeSprite = spr
-    app.activeLayer = newlayer
-    app.command.ToggleTilesMode()
-    app.command.TilesetMode{["mode"]="auto"}
-    app.command.Paste()
-    
-    -- Delete all pixels in newlayer
-    app.command.ToggleTilesMode()
-    spr.selection:selectAll()
-    app.command.TilesetMode{["mode"]="stack"}
-    app.command.Clear()
-    sprite_tileset.selection:deselect()
-    sprite_tileset:close()
+    if (frame.frameNumber == 1) then
+      local tileset_sprite = app.open(tileset_filename)
+      local tileset_pxheight = tileset_sprite.height
+      local tileset_pxwidth = tileset_sprite.width
+      local tileset_tileheight = tileset_pxheight//tile_pxheight
+      local tileset_splitnum = math.ceil(tileset_pxheight/canvas_pxheight)
+      -- Copies tileset over in batches of height equal to the canvas'
+      for i = 0, (tileset_splitnum-1) do
+        -- Copy pixels from opened tileset file
+        app.activeSprite = tileset_sprite
+        selection_y = i*tile_pxheight*canvas_tileheight
+        tileset_sprite.selection:deselect()
+        tileset_sprite.selection:select(Rectangle(0, selection_y, tileset_pxwidth, canvas_pxheight))
+        tileset_sprite.selection:select(Rectangle(0, selection_y, tileset_pxwidth, canvas_pxheight))
+        app.command.Copy()
+        app.activeSprite = spr
+        app.activeLayer = newlayer
+        app.command.ToggleTilesMode()
+        app.command.TilesetMode{["mode"]="auto"}
+        app.command.Paste()
+        tileset_sprite.selection:deselect()
+        -- Delete all pixels in newlayer
+        app.command.ToggleTilesMode()
+        spr.selection:selectAll()
+        app.command.TilesetMode{["mode"]="stack"}
+        app.command.Clear()
+        spr.selection:deselect()
+      end
+      tileset_sprite:close()
+    end
 
     -- Copy pixels from oldlayer
     spr = app.activeSprite
