@@ -28,12 +28,16 @@ local fs = app.fs
 local output_folder = fs.filePath(spr.filename)
 if not lay.isTilemap then return app.alert "No active tilemap layer" end
 
-local function layers_duplicate(spr)
+local function layers_tilemap_duplicate(spr)
   for i,layer in ipairs(spr.layers) do
-    app.activeLayer = layer
-    layer.isVisible = true    
-    app.command.DuplicateLayer()
-    layer.isVisible = false
+    if layer.isTilemap then
+      app.activeLayer = layer
+      layer.isVisible = true    
+      app.command.DuplicateLayer()
+      layer.isVisible = false
+    else
+      layer.isVisible = false
+    end
   end
 end
 
@@ -44,6 +48,12 @@ local function layers_visible_flatten(spr)
     grid.height = 16
     grid.width = 16
     spr.gridBounds = grid
+  end
+end
+
+local function layers_2visible(spr)
+  for i,layer in ipairs(spr.layers) do
+      layer.isVisible = true
   end
 end
 
@@ -67,7 +77,7 @@ local function layers_getName(layers,name)
   return out
 end
 
-layers_duplicate(spr)
+layers_tilemap_duplicate(spr)
 layers_visible_flatten(spr)
 layers_visible2tilemap(spr)
 
@@ -97,3 +107,4 @@ if lay.isTilemap then
   image:saveAs(path)
 end
 app.command.RemoveLayer()
+layers_2visible(spr)
