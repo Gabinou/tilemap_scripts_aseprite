@@ -12,3 +12,7 @@ Everything including my modifications are under the MIT licence, feel free to us
 
 - ```Import Tileset.lua``` uses layer names of all tilemap layers to import tilesets. For each tilemap layer, a new tilemap layer is created, the tileset is imported from the ```Tileset_*layer_name*.png``` file, then the pixels from the old tilemap layers are copied over. This operation is repeated for every frames. Finally, the old tilemap layers are discarded and the new ones renamed to their respective names.
 
+## To Do
+- ```Import Tileset.lua``` has trouble importing tilesets to empty layers/cels.
+
+
