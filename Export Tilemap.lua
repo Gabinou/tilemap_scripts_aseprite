@@ -111,7 +111,9 @@ end
 local function export_layers(layers)
   local t = {}
   for _,layer in ipairs(layers) do
-    table.insert(t, export_layer(layer, export_layers))
+    if layer.isTilemap then
+      table.insert(t, export_layer(layer, export_layers))
+    end
   end
   return t
 end
