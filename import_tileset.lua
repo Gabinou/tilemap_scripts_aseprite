@@ -1,7 +1,8 @@
 if TilesetMode == nil then return app.alert "Use Aseprite v1.3"  end
 
 -- Import Tilesets for every tilemap layer. 
--- Layer name should be same name as in the Tileset_*layername*.png 
+-- Tileset name should be tiles/Tileset_*layername*.png
+-- Assumes "tiles" folder accessible at ../ from aseprite file
 -- For Every Tilemap Layer:
 -- 1. Create empty Tilemap *layername*_2
 -- 2. Import .png tileset. 
@@ -10,8 +11,10 @@ if TilesetMode == nil then return app.alert "Use Aseprite v1.3"  end
 -- 5. Copy pixels from *layername*
 -- 6. Repeat steps 2-5 for all frames
 -- 7. Delete *layername*
--- 8. Rename *layername*_2 to *layername* 
+-- 8. Rename *layername*_2 to *layername*
 
+
+-- Preliminaries, going to first frame, measuring canvas...
 app.command.GotoFirstFrame()
 local frame = app.activeFrame
 local spr = app.activeSprite
@@ -26,11 +29,8 @@ local canvas_tileheight = canvas_pxheight // tile_pxwidth
 
 local fs = app.fs
 local output_folder = fs.filePath(spr.filename)
-local tileset_folder
-if string.find(output_folder, "Maps") then
- tileset_folder = output_folder:gsub("Maps", "Tiles")
-end
--- print(tileset_folder)
+local tileset_folder = "../tiles"
+
 if not lay.isTilemap then return app.alert "No active tilemap layer" end
 
 local function getLayer(spr, layername)
@@ -45,12 +45,8 @@ local function getLayer(spr, layername)
 end
 
 local function layer_tilemap_create(newname)
-  app.command.NewLayer()
-  app.command.ConvertLayer{["to"]="tilemap"}
-  -- app.command.NewLayer{["tilemap"]=true} -- Borks placement offset Aseprite Issue #2743
-  layer = app.activeLayer
-  layer.name = newname
-  return(layer)
+  app.command.NewLayer{name=newname,ask=false,tilemap=true}
+  return(app.activeLayer)
 end
 
 tilemap_oldlayer_names = {}
@@ -59,7 +55,6 @@ for i,layer in ipairs(spr.layers) do
     tilemap_oldlayer_names[#tilemap_oldlayer_names + 1] = layer.name 
   end
 end
-
 
 local postname = "_2"
 -- Make new tilemap layers
@@ -73,9 +68,10 @@ end
 while (frame ~= nil) do
   spr = frame.sprite
   lay = app.activeLayer
+  
+  -- For every tileset layer
   for i = 1, (#tilemap_oldlayer_names) do
-
-  -- get old and new tilemap layers
+    -- get old and new tilemap layers
     local tileset_filename = app.fs.joinPath(tileset_folder, "Tileset_"..tilemap_oldlayer_names[i]..".png")
     local newlayer = getLayer(spr, tilemap_oldlayer_names[i]..postname)
     local oldlayer = getLayer(spr, tilemap_oldlayer_names[i])
@@ -91,6 +87,7 @@ while (frame ~= nil) do
       local tileset_pxwidth = tileset_sprite.width
       local tileset_tileheight = tileset_pxheight//tile_pxheight
       local tileset_splitnum = math.ceil(tileset_pxheight/canvas_pxheight)
+      
       -- Copies tileset over in batches of height equal to the canvas'
       for i = 0, (tileset_splitnum-1) do
         -- Copy pixels from opened tileset file
@@ -98,15 +95,11 @@ while (frame ~= nil) do
         selection_y = i*tile_pxheight*canvas_tileheight
         tileset_sprite.selection:deselect()
         tileset_sprite.selection:select(Rectangle(0, selection_y, tileset_pxwidth, canvas_pxheight))
-        tileset_sprite.selection:select(Rectangle(0, selection_y, tileset_pxwidth, canvas_pxheight))
-        app.command.Copy()
+        app.command.CopyMerged()
         app.activeSprite = spr
         app.activeLayer = newlayer
-        app.command.ToggleTilesMode()
         app.command.TilesetMode{["mode"]="auto"}
         app.command.Paste()
-        tileset_sprite.selection:deselect()
-        -- Delete all pixels in newlayer
         app.command.ToggleTilesMode()
         spr.selection:selectAll()
         app.command.TilesetMode{["mode"]="stack"}
@@ -122,10 +115,11 @@ while (frame ~= nil) do
     spr.selection:selectAll()
     app.command.Copy()
     app.activeLayer = newlayer
-    spr.selection:deselect()
+    spr.selection:selectAll()
     app.command.Paste()
-    spr.selection:deselect()
   end
+
+  -- Go to next frame
   app.command.GotoNextFrame()
   frame = app.activeFrame
   if (frame.frameNumber == 1) then
