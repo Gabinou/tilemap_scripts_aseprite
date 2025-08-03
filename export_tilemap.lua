@@ -172,7 +172,7 @@ local function export_slices(slices)
   return t
 end
 
-local jsonFn =  fs.joinPath(output_folder, app.fs.fileTitle(lay.sprite.filename) .. ".json")
+local jsonFn =  fs.joinPath(output_folder, app.fs.fileTitle(lay.sprite.filename) .. "_tilemap.json")
 local data = {
   filename=spr.filename,
   width=spr.width,
